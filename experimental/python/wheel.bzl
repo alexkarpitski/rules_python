@@ -81,7 +81,27 @@ Sub-packages are automatically included.
     },
 )
 
+def _input_files_to_txt(ctx):
+    print("MAKAKA-2")
+
+    inputs_to_package = depset(
+        direct = ctx.files.deps,
+    )
+
+    inputfiles_outfile = ctx.actions.declare_file("1.inputfiles")
+
+    #    inputfiles_outfile = ctx.actions.declare_file("%s.inputfiles" % outfile.path)
+    inputfiles_list = [_input_file_to_arg(input_file) for input_file in inputs_to_package.to_list()]
+    ctx.actions.write(output = inputfiles_outfile, content = "|".join(inputfiles_list))
+
+    return [DefaultInfo(
+        files = depset([inputfiles_outfile]),
+        data_runfiles = ctx.runfiles(files = [inputfiles_outfile]),
+        default_runfiles = ctx.runfiles(files = [inputfiles_outfile]),
+    )]
+
 def _py_wheel_impl(ctx):
+    print("MAKAKA-1")
     outfile = ctx.actions.declare_file("-".join([
         ctx.attr.distribution,
         ctx.attr.version,
@@ -107,8 +127,6 @@ def _py_wheel_impl(ctx):
     args.add("--out", outfile.path)
     args.add_all(ctx.attr.strip_path_prefixes, format_each = "--strip_path_prefix=%s")
 
-    outfile_inputfiles = outfile.path + ".inputfiles"
-    print("MAKAKA-input_file-wheel", outfile_inputfiles, [_input_file_to_arg(input_file) for input_file in inputs_to_package.to_list()])
     args.add_all(inputs_to_package, format_each = "--input_file=%s", map_each = _input_file_to_arg)
 
     extra_headers = []
@@ -220,7 +238,27 @@ _other_attrs = {
     ),
 }
 
-py_wheel = rule(
+_input_files_to_txt_test = rule(
+    implementation = _input_files_to_txt,
+    attrs = _concat_dicts(
+        {
+            "deps": attr.label_list(),
+            "_wheelmaker": attr.label(
+                executable = True,
+                cfg = "host",
+                default = "//experimental/rules_python:wheelmaker",
+            ),
+        },
+        _distribution_attrs,
+        _requirement_attrs,
+        _entrypoint_attrs,
+        _other_attrs,
+    ),
+    executable = True,
+    test = True,
+)
+
+ppy_wheel = rule(
     implementation = _py_wheel_impl,
     doc = """
 A rule for building Python Wheels.
@@ -292,3 +330,16 @@ tries to locate `.runfiles` directory which is not packaged in the wheel.
         _other_attrs,
     ),
 )
+
+def py_wheel(name, **kwargs):
+    test_name = name + ".inner"
+    main_name = kwargs.pop("name", default = name + ".py")
+    _input_files_to_txt_test(name = test_name, **kwargs)
+    ppy_wheel(name = name, **kwargs)
+
+#git_repository(
+#    name = "rules_python",
+#    commit = "6ff4e808323992a44d1277da671f10ee70395493",
+#    remote = "https://github.com/alexkarpitski/rules_python",
+#    #    shallow_since = "1583438240 -0500",
+#)

@@ -18,6 +18,7 @@ import collections
 import hashlib
 import os
 import os.path
+import time
 import sys
 import zipfile
 
@@ -195,6 +196,7 @@ def get_files_to_package(input_files):
 
 
 def main():
+    # time.sleep(999)
     parser = argparse.ArgumentParser(description='Builds a python wheel')
     metadata_group = parser.add_argument_group(
         "Wheel name, version and platform")
@@ -260,11 +262,22 @@ def main():
     # add_wheelfile and add_metadata currently assume pure-Python.
     assert arguments.platform == 'any', "Only pure-Python wheels are supported"
 
+    # print('MAKAKA-input_file-wheelmaker', arguments.input_file)
+    print('MAKAKA-KAKA', os.getcwd())
+    print('MAKAKA-KAKA-1', arguments.out)
+    # if True:
+    # if arguments.input_file:
+    #     print('MAKAKA-KAKA-2', arguments.input_file)
+        # with open(arguments.input_file[0], 'rt') as file:
+        #     inputs = file.readline()
+        #     input_files = [i.split(';') for i in [dep for dep in inputs.split('|')]]
+    # else:
+    #     input_files = []
     if arguments.input_file:
-        print('MAKAKA-input_file-wheelmaker', arguments.input_file)
         input_files = [i.split(';') for i in arguments.input_file]
     else:
         input_files = []
+    # time.sleep(999)
     all_files = get_files_to_package(input_files)
     # Sort the files for reproducible order in the archive.
     all_files = sorted(all_files.items())
