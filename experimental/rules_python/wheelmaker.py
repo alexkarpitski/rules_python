@@ -237,6 +237,7 @@ def main():
                              help="Path to the file with package description")
 
     contents_group = parser.add_argument_group("Wheel contents")
+    print('MAKAKA-input_file-wheelmaker')
     contents_group.add_argument(
         '--input_file', action='append',
         help="'package_path;real_path' pairs listing "

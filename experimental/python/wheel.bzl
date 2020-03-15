@@ -107,6 +107,7 @@ def _py_wheel_impl(ctx):
     args.add("--out", outfile.path)
     args.add_all(ctx.attr.strip_path_prefixes, format_each = "--strip_path_prefix=%s")
 
+    print("MAKAKA-input_file-wheel")
     args.add_all(inputs_to_package, format_each = "--input_file=%s", map_each = _input_file_to_arg)
 
     extra_headers = []
