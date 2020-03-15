@@ -69,6 +69,7 @@ def py_test(**attrs):
     """
 
     # buildifier: disable=native-python
+    print("MAKAKA-pytest-1")
     native.py_test(**_add_tags(attrs))
 
 def py_runtime(**attrs):
