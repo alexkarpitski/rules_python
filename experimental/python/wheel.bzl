@@ -145,8 +145,10 @@ def _py_wheel_impl(ctx):
     args.add_all(ctx.attr.strip_path_prefixes, format_each = "--strip_path_prefix=%s")
 
     compressed_imput_files = _compressed_imput_files(inputs_to_package)
-    args.add("--input_file", compressed_imput_files)
-    #    args.add_all(inputs_to_package, format_each = "--input_file=%s", map_each = _input_file_to_arg)
+    outfile_deps = ctx.actions.declare_file(outfile.path + ".deps")
+    ctx.actions.write(outfile_deps, compressed_imput_files)
+    args.add("--workspace_name", ctx.workspace_name)
+    args.add("--input_file", outfile_deps.path)
 
     extra_headers = []
     if ctx.attr.author:
@@ -187,8 +189,8 @@ def _py_wheel_impl(ctx):
         progress_message = "Building wheel",
     )
     return [DefaultInfo(
-        files = depset([outfile]),
-        data_runfiles = ctx.runfiles(files = [outfile]),
+        files = depset([outfile, outfile_deps]),
+        data_runfiles = ctx.runfiles(files = [outfile, outfile_deps]),
     )]
 
 def _concat_dicts(*dicts):

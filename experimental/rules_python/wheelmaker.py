@@ -15,9 +15,11 @@
 import argparse
 import base64
 import collections
+import getpass
 import hashlib
 import os
 import os.path
+import re
 import sys
 import zipfile
 
@@ -222,6 +224,18 @@ def extract_input_files(compressed_input_file_str):
     return input_files
 
 
+def get_input_file_location(arguments):
+    cwd = os.getcwd()
+    # https://docs.bazel.build/versions/master/output_directories.html
+    basel_user_dir = '_bazel_%s' % getpass.getuser()
+    workspace_name_dir = arguments.workspace_name
+    input_file = arguments.input_file
+    dir_before_sandbox_match = re.match('(.*%s.*?)sandbox' % basel_user_dir, cwd)
+    if not bool(dir_before_sandbox_match):
+        raise Exception('please run in the default sandbox')
+    return os.path.join(dir_before_sandbox_match.group(1), 'execroot', workspace_name_dir, input_file)
+
+
 def main():
     parser = argparse.ArgumentParser(description='Builds a python wheel')
     metadata_group = parser.add_argument_group(
@@ -266,6 +280,7 @@ def main():
 
     contents_group = parser.add_argument_group("Wheel contents")
     contents_group.add_argument('--input_file', type=str, default='none')
+    contents_group.add_argument('--workspace_name', type=str, default='none')
     contents_group.add_argument(
         '--console_script', action='append',
         help="Defines a 'console_script' entry point. "
@@ -284,10 +299,8 @@ def main():
     # add_wheelfile and add_metadata currently assume pure-Python.
     assert arguments.platform == 'any', "Only pure-Python wheels are supported"
 
-    if arguments.input_file:
-        input_files = extract_input_files(arguments.input_file)
-    else:
-        input_files = []
+    with open(get_input_file_location(arguments), 'rt') as input_file:
+        input_files = extract_input_files(input_file.readline())
     all_files = get_files_to_package(input_files)
     # Sort the files for reproducible order in the archive.
     all_files = sorted(all_files.items())
