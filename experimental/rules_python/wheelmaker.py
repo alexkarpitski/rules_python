@@ -18,7 +18,6 @@ import collections
 import hashlib
 import os
 import os.path
-import time
 import sys
 import zipfile
 
@@ -93,6 +92,7 @@ class WheelMaker(object):
 
     def add_file(self, package_filename, real_filename):
         """Add given file to the distribution."""
+
         def arcname_from(name):
             # Always use unix path separators.
             normalized_arcname = name.replace(os.path.sep, '/')
@@ -195,8 +195,34 @@ def get_files_to_package(input_files):
     return files
 
 
+def as_wheel_file_info(previous_wheel_info, current_input_file_info):
+    previous_path = previous_wheel_info[1]
+    compressed_current_path = current_input_file_info[0]
+    wheel_strip_from_left = int(current_input_file_info[1])
+    left_intersection_with_previous = int(current_input_file_info[2])
+    current_path = previous_path[:left_intersection_with_previous] + compressed_current_path
+    wheel_path = current_path[wheel_strip_from_left:]
+    return [wheel_path, current_path]
+
+
+def extract_input_files(compressed_input_file_str):
+    split_separator = "|"
+    file_info_separator = ";"
+    inputinfos_list = [info.split(file_info_separator) for info in compressed_input_file_str.split(split_separator)]
+    if not len(inputinfos_list):
+        return []
+
+    input_files = []
+    previous_wheel_info = as_wheel_file_info(['', ''], inputinfos_list[0])
+    input_files.append(previous_wheel_info)
+    for i in range(1, len(inputinfos_list)):
+        current_wheel_info = as_wheel_file_info(previous_wheel_info, inputinfos_list[i])
+        input_files.append(current_wheel_info)
+        previous_wheel_info = current_wheel_info
+    return input_files
+
+
 def main():
-    # time.sleep(999)
     parser = argparse.ArgumentParser(description='Builds a python wheel')
     metadata_group = parser.add_argument_group(
         "Wheel name, version and platform")
@@ -239,11 +265,7 @@ def main():
                              help="Path to the file with package description")
 
     contents_group = parser.add_argument_group("Wheel contents")
-    contents_group.add_argument(
-        '--input_file', action='append',
-        help="'package_path;real_path' pairs listing "
-             "files to be included in the wheel. "
-             "Can be supplied multiple times.")
+    contents_group.add_argument('--input_file', type=str, default='none')
     contents_group.add_argument(
         '--console_script', action='append',
         help="Defines a 'console_script' entry point. "
@@ -262,22 +284,10 @@ def main():
     # add_wheelfile and add_metadata currently assume pure-Python.
     assert arguments.platform == 'any', "Only pure-Python wheels are supported"
 
-    # print('MAKAKA-input_file-wheelmaker', arguments.input_file)
-    print('MAKAKA-KAKA', os.getcwd())
-    print('MAKAKA-KAKA-1', arguments.out)
-    # if True:
-    # if arguments.input_file:
-    #     print('MAKAKA-KAKA-2', arguments.input_file)
-        # with open(arguments.input_file[0], 'rt') as file:
-        #     inputs = file.readline()
-        #     input_files = [i.split(';') for i in [dep for dep in inputs.split('|')]]
-    # else:
-    #     input_files = []
     if arguments.input_file:
-        input_files = [i.split(';') for i in arguments.input_file]
+        input_files = extract_input_files(arguments.input_file)
     else:
         input_files = []
-    # time.sleep(999)
     all_files = get_files_to_package(input_files)
     # Sort the files for reproducible order in the archive.
     all_files = sorted(all_files.items())
