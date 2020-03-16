@@ -227,12 +227,11 @@ def extract_input_files(compressed_input_file_str):
 def get_input_file_location(arguments):
     cwd = os.getcwd()
     # https://docs.bazel.build/versions/master/output_directories.html
-    basel_user_dir = '_bazel_%s' % getpass.getuser()
     workspace_name_dir = arguments.workspace_name
     input_file = arguments.input_file
-    dir_before_sandbox_match = re.match('(.*%s.*?)sandbox' % basel_user_dir, cwd)
+    dir_before_sandbox_match = re.match('(.*[a-zA-Z0-9]{32}.*?)sandbox', cwd)
     if not bool(dir_before_sandbox_match):
-        raise Exception('please run in the default sandbox')
+        raise Exception('sandbox is unavailable or unsupported, please try the default paths')
     return os.path.join(dir_before_sandbox_match.group(1), 'execroot', workspace_name_dir, input_file)
 
 
